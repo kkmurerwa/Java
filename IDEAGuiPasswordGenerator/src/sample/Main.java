@@ -8,18 +8,19 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.util.ArrayList;
+import java.util.Observable;
 import java.util.Random;
 import javax.swing.JOptionPane;//Import JOPtionPane
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
+import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.*;//Import all layouts with one import statement
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -58,6 +59,7 @@ public class Main extends Application {
 
         hbForOptions.setAlignment(Pos.CENTER);
         hbForOptions.setVisible(false);
+        hbForOptions.setSpacing(20);
 
         hbForButtons.setAlignment(Pos.CENTER);
         hbForButtons.setSpacing(20);
@@ -72,6 +74,20 @@ public class Main extends Application {
         generatedPassword.setPromptText("Generated password shows here");
         generatedPassword.setEditable(false);//Disables editing of the textfield
 
+        //Create a choice box to select hashing or encryption method
+        ChoiceBox selector = new ChoiceBox();
+
+        ChoiceBox encryptionStandards = new ChoiceBox();
+
+        //Create lists to be used in displaying choice box options
+        ObservableList <String> selectorList;
+        selectorList = FXCollections.observableArrayList("Select action","Hash", "Encrypt");
+
+        ObservableList <String> hashes;
+        hashes = FXCollections.observableArrayList("Select hash", "MD5", "SHA 1", "SHA 3", "SHA 256");
+
+        ObservableList <String> encryptions;
+        encryptions = FXCollections.observableArrayList("Select encryption",  "ROT 13", "DES", "RSA","AES");
 
         //Create buttons to be used
         Button generatePassword = new Button("Generate");
@@ -84,6 +100,7 @@ public class Main extends Application {
         //Set characteristics for buttons created
         generatePassword.setPrefHeight(40);
         generatePassword.setFont(Font.font(20));
+        generatePassword.setTooltip(new Tooltip("Generate a random 16-character password"));
         generatePassword.setOnAction((ActionEvent event)-> {
             passString = passwordgeneratormethod();
             generatedPassword.setText(passString);
@@ -125,21 +142,44 @@ public class Main extends Application {
             if (!optionsBox){
                 hbForOptions.setVisible(true);
                 expandButton.setText("Collapse ▲");
-                hbForOptions.getChildren().addAll( encrypt);//hash, ecryption,
+                hbForOptions.getChildren().addAll( selector, encryptionStandards, encrypt);//hash, ecryption,
                 optionsBox = true;
             }
             else{
                 hbForOptions.setVisible(false);
                 expandButton.setText("Expand ▼");
-                hbForOptions.getChildren().removeAll( encrypt);//hash, ecryption,
+                hbForOptions.getChildren().removeAll(selector, encryptionStandards, encrypt);
                 optionsBox = false;
             }
         });
 
+        //Set properties of choice boxes
+        selector.setItems(selectorList);
+        selector.getSelectionModel().selectFirst();
+        selector.setPrefHeight(40);
+        selector.showingProperty().addListener((obs, wasShowing, isNowShowing) -> {
+            if (!isNowShowing) {
+                // choice box popup is now displayed
+                String selection = selector.getValue().toString();
+                if (selection.equals("Hash")){
+                    encryptionStandards.setItems(hashes);
+                    encryptionStandards.getSelectionModel().selectFirst();
+                }
+                else {
+                    encryptionStandards.setItems(encryptions);
+                    encryptionStandards.getSelectionModel().selectFirst();
+                }
+            }
+        });
+
+        encryptionStandards.setPrefHeight(40);
+
+
         encrypt.setPrefHeight(40);
         encrypt.setFont(Font.font(20));
         encrypt.setOnAction((ActionEvent event)-> {
-//            Some code here
+            String hashingAlgorithm = encryptionStandards.getValue().toString();
+            JOptionPane.showMessageDialog(null, hashingAlgorithm);
         });
 
         exit.setPrefHeight(40);
@@ -152,7 +192,6 @@ public class Main extends Application {
                 System.exit(0);
             }
         });
-
 
         //Add items to its parent component
         hbForTextField.getChildren().addAll(generatedPassword);
