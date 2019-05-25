@@ -24,7 +24,43 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.*;//Import all layouts with one import statement
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 
+class DesEncrypter {
+    Cipher ecipher;
+
+    Cipher dcipher;
+
+    DesEncrypter(SecretKey key) throws Exception {
+        ecipher = Cipher.getInstance("DES");
+        dcipher = Cipher.getInstance("DES");
+        ecipher.init(Cipher.ENCRYPT_MODE, key);
+        dcipher.init(Cipher.DECRYPT_MODE, key);
+    }
+
+    public String encrypt(String str) throws Exception {
+        // Encode the string into bytes using utf-8
+        byte[] utf8 = str.getBytes("UTF8");
+
+        // Encrypt
+        byte[] enc = ecipher.doFinal(utf8);
+
+        // Encode bytes to base64 to get a string
+        return new sun.misc.BASE64Encoder().encode(enc);
+    }
+
+    public String decrypt(String str) throws Exception {
+        // Decode base64 to get bytes
+        byte[] dec = new sun.misc.BASE64Decoder().decodeBuffer(str);
+
+        byte[] utf8 = dcipher.doFinal(dec);
+
+        // Decode using utf-8
+        return new String(utf8, "UTF8");
+    }
+}
 
 public class Main extends Application {
     //Initialize variables to be used
@@ -40,18 +76,19 @@ public class Main extends Application {
         //Create secondary layout managers
         VBox vb = new VBox();
         HBox hbForButtons = new HBox();
-        HBox hbForTextField = new HBox();
+        VBox hbForTextField = new VBox();
         HBox hbForExpand = new HBox();
         HBox hbForOptions = new HBox();
         HBox hbForExitButton = new HBox();
 
 
         //Set Properties for the layout managers
-        root.setPadding(new Insets (80, 40, 30, 40));
+        root.setPadding(new Insets (40, 40, 30, 40));
 
         vb.setSpacing(20);
 
         hbForTextField.setAlignment(Pos.CENTER);
+        hbForTextField.setSpacing(20);
 
         hbForExitButton.setAlignment(Pos.CENTER);
 
@@ -71,8 +108,15 @@ public class Main extends Application {
         generatedPassword.setPrefWidth(420);
         generatedPassword.setPrefHeight(40);
         generatedPassword.setFont(Font.font(18));
-        generatedPassword.setPromptText("Generated password shows here");
+        generatedPassword.setPromptText("Generated password or crypto shows here");
         generatedPassword.setEditable(false);//Disables editing of the textfield
+
+        TextField inputField = new TextField();
+        inputField.setAlignment(Pos.CENTER);//Align text to center
+        inputField.setPrefWidth(420);
+        inputField.setPrefHeight(40);
+        inputField.setFont(Font.font(18));
+        inputField.setPromptText("Enter text to encrypt here");
 
         //Create a choice box to select hashing or encryption method
         ChoiceBox selector = new ChoiceBox();
@@ -155,6 +199,7 @@ public class Main extends Application {
 
         //Set properties of choice boxes
         selector.setItems(selectorList);
+        selector.setValue(null);
         selector.getSelectionModel().selectFirst();
         selector.setPrefHeight(40);
         selector.showingProperty().addListener((obs, wasShowing, isNowShowing) -> {
@@ -173,13 +218,29 @@ public class Main extends Application {
         });
 
         encryptionStandards.setPrefHeight(40);
+        encryptionStandards.setValue(null);
 
 
         encrypt.setPrefHeight(40);
         encrypt.setFont(Font.font(20));
         encrypt.setOnAction((ActionEvent event)-> {
-            String hashingAlgorithm = encryptionStandards.getValue().toString();
-            JOptionPane.showMessageDialog(null, hashingAlgorithm);
+            if (selector.getValue() != null && encryptionStandards.getValue() != null){
+                String hashingAlgorithm = encryptionStandards.getValue().toString();
+                if (hashingAlgorithm.equals("DES")){
+                    try {
+                        SecretKey key = KeyGenerator.getInstance("DES").generateKey();
+                        DesEncrypter encrypter = new DesEncrypter(key);
+                        String encrypted = encrypter.encrypt(inputField.getText());
+                        generatedPassword.setText(encrypted);
+                    }
+                    catch (Exception e){
+                        JOptionPane.showMessageDialog(null, "Could not encrypt");
+                    }
+                }
+            }
+            else {
+                JOptionPane.showMessageDialog(null, "No selected standards");
+            }
         });
 
         exit.setPrefHeight(40);
@@ -194,7 +255,7 @@ public class Main extends Application {
         });
 
         //Add items to its parent component
-        hbForTextField.getChildren().addAll(generatedPassword);
+        hbForTextField.getChildren().addAll(inputField, generatedPassword);
         hbForButtons.getChildren().addAll(generatePassword, clearPassword, copyToClipBoard);
         hbForExpand.getChildren().addAll(expandButton);
         hbForExitButton.getChildren().add(exit);
